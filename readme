@@ -1,50 +1,16 @@
-import json
-import pandas as pd
+Rework the PR per review comments, keeping the diff minimal and close to the original text.
 
-FILE = "conversation.csv"                      # ← your CSV file
-TOOL = "mcp__sdq__list_irl_workflow_listings"  # the tool we're checking
+agent/config/system_prompt/sdq_common.md:
+1. Line 9: remove both sdq.example.com example URLs. Link text: use the REQ-IRL id, consistent with line 12 (check line 12 and match it exactly).
+2. Restore the original line 10 rule ("Use the address exactly as the tool returned it... never assemble one out of an id you hold"), adding "a pattern, or an example" to that last clause. Scope the "use only" idea to addresses: "Use only source_url values a tool returned, exactly as returned." Do NOT restrict ids or values to this turn.
+3. Keep the general sentence: "Some tools return no source_url because the screen behind them is not linkable: report those with no link at all." Example: "anything read through the pipeline tools (list_irl_workflow_listings etc.) has no link". Do NOT enumerate stages, and do NOT say panels have no source_url.
+4. Add: link a row/item only when that row/item carries its own source_url — never reuse a top-level source_url for each row, and never reuse a source_url from another tool call for a different listing.
+5. No-link example: the name as plain text (not inline code), with no link and no placeholder.
 
-decoder = json.JSONDecoder()
+agent/config/system_prompt/sdq_review_data.md:
+6. "...give the listing's source_url, linked on its REQ-IRL id, with its record count."
 
-def extract_events(cell):
-    events, i, s = [], 0, str(cell)
-    while i < len(s):
-        start = s.find("{", i)
-        if start == -1:
-            break
-        try:
-            obj, end = decoder.raw_decode(s, start)
-            if isinstance(obj, dict):
-                events.append(obj)
-            i = end
-        except json.JSONDecodeError:
-            i = start + 1
-    return events
+Tests:
+7. Add a regression test next to the existing ALL_FRAGMENTS_TEXT tests: no sdq.example.com or "/irl/listings/" example URLs in fragments, and the no-source_url rule sentence is present.
 
-tool_ids = set()     # IDs of calls made to our tool
-count = 0
-df = pd.read_csv(FILE, dtype=str)
-
-for _, row in df.iterrows():
-    for cell in row:
-        if not (isinstance(cell, str) and '"type"' in cell):
-            continue
-        for e in extract_events(cell):
-            content = (e.get("message") or {}).get("content")
-            if not isinstance(content, list):
-                continue
-            for b in content:
-                # Remember every call to our tool
-                if b.get("type") == "tool_use" and b.get("name") == TOOL:
-                    tool_ids.add(b.get("id"))
-                # Check results that belong to those calls
-                if b.get("type") == "tool_result" and b.get("tool_use_id") in tool_ids:
-                    count += 1
-                    r = json.dumps(b.get("content"))
-                    print(f"\n===== RESULT #{count} ({len(r)} chars) =====")
-                    print("  contains 'source_url'?  ", "source_url" in r)
-                    print("  contains 'example.com'? ", "example.com" in r)
-                    print("  contains 'http'?        ", "http" in r)
-                    print("  preview:", r[:400])
-
-print(f"\nTotal results checked: {count}")
+First read sdq_tools/records.py around lines 230 and 260 to confirm how source_url is attached there. Show me the diff before saving, then run pytest.
