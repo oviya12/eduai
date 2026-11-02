@@ -1,13 +1,12 @@
-import json, re
+import json
 import pandas as pd
 
-FILE = "conversation.csv"   # ← your CSV file name
-SHOW_THINKING = False       # True = also show the AI's reasoning
+FILE = "conversation.csv"                      # ← your CSV file
+TOOL = "mcp__sdq__list_irl_workflow_listings"  # the tool we're checking
 
 decoder = json.JSONDecoder()
 
 def extract_events(cell):
-    """Pull every JSON object out of one cell, even if they're stuck together."""
     events, i, s = [], 0, str(cell)
     while i < len(s):
         start = s.find("{", i)
@@ -22,45 +21,30 @@ def extract_events(cell):
             i = start + 1
     return events
 
-def show(e, seen):
-    uid = e.get("uuid")
-    if uid and uid in seen:          # skip duplicates
-        return
-    seen.add(uid)
-    t = e.get("type")
-
-    if t == "queue-operation" and e.get("operation") == "enqueue":
-        print(f"\n{'='*60}\n🧑 USER: {e.get('content')}")
-        return
-    if t not in ("assistant", "user"):
-        return
-    content = (e.get("message") or {}).get("content")
-    if not isinstance(content, list):
-        return
-
-    for b in content:
-        kind = b.get("type")
-        if kind == "thinking" and SHOW_THINKING:
-            print(f"\n🤔 THINKING: {b.get('thinking', '')[:400]}")
-        elif kind == "tool_use":
-            print(f"\n🔧 TOOL CALL: {b.get('name')}  {json.dumps(b.get('input'))[:200]}")
-        elif kind == "tool_result":
-            r = json.dumps(b.get("content"))
-            flag = "✅ has source_url" if "source_url" in r else "❌ NO source_url"
-            print(f"📦 TOOL RESULT ({len(r)} chars) — {flag}")
-            print(f"   {r[:250]}")
-        elif kind == "text":
-            text = b.get("text", "")
-            print(f"\n🤖 ANSWER:\n{text}")
-            for name, url in re.findall(r"\[([^\]]+)\]\(([^)]+)\)", text):
-                bad = "example.com" in url or "source_url" in url
-                print(f"   🔗 {name} -> {url}  {'❌ FAKE LINK' if bad else ''}")
-
+tool_ids = set()     # IDs of calls made to our tool
+count = 0
 df = pd.read_csv(FILE, dtype=str)
-seen = set()
-for row_num, row in df.iterrows():
-    for col in df.columns:
-        cell = row[col]
-        if isinstance(cell, str) and '"type"' in cell:   # only cells with log JSON
-            for e in extract_events(cell):
-                show(e, seen)
+
+for _, row in df.iterrows():
+    for cell in row:
+        if not (isinstance(cell, str) and '"type"' in cell):
+            continue
+        for e in extract_events(cell):
+            content = (e.get("message") or {}).get("content")
+            if not isinstance(content, list):
+                continue
+            for b in content:
+                # Remember every call to our tool
+                if b.get("type") == "tool_use" and b.get("name") == TOOL:
+                    tool_ids.add(b.get("id"))
+                # Check results that belong to those calls
+                if b.get("type") == "tool_result" and b.get("tool_use_id") in tool_ids:
+                    count += 1
+                    r = json.dumps(b.get("content"))
+                    print(f"\n===== RESULT #{count} ({len(r)} chars) =====")
+                    print("  contains 'source_url'?  ", "source_url" in r)
+                    print("  contains 'example.com'? ", "example.com" in r)
+                    print("  contains 'http'?        ", "http" in r)
+                    print("  preview:", r[:400])
+
+print(f"\nTotal results checked: {count}")
