@@ -1,16 +1,5 @@
-Rework the PR per review comments, keeping the diff minimal and close to the original text.
-
-agent/config/system_prompt/sdq_common.md:
-1. Line 9: remove both sdq.example.com example URLs. Link text: use the REQ-IRL id, consistent with line 12 (check line 12 and match it exactly).
-2. Restore the original line 10 rule ("Use the address exactly as the tool returned it... never assemble one out of an id you hold"), adding "a pattern, or an example" to that last clause. Scope the "use only" idea to addresses: "Use only source_url values a tool returned, exactly as returned." Do NOT restrict ids or values to this turn.
-3. Keep the general sentence: "Some tools return no source_url because the screen behind them is not linkable: report those with no link at all." Example: "anything read through the pipeline tools (list_irl_workflow_listings etc.) has no link". Do NOT enumerate stages, and do NOT say panels have no source_url.
-4. Add: link a row/item only when that row/item carries its own source_url — never reuse a top-level source_url for each row, and never reuse a source_url from another tool call for a different listing.
-5. No-link example: the name as plain text (not inline code), with no link and no placeholder.
-
-agent/config/system_prompt/sdq_review_data.md:
-6. "...give the listing's source_url, linked on its REQ-IRL id, with its record count."
-
-Tests:
-7. Add a regression test next to the existing ALL_FRAGMENTS_TEXT tests: no sdq.example.com or "/irl/listings/" example URLs in fragments, and the no-source_url rule sentence is present.
-
-First read sdq_tools/records.py around lines 230 and 260 to confirm how source_url is attached there. Show me the diff before saving, then run pytest.
+Small follow-ups before I push:
+ sdq_common.md line 9: don't show `[REQ-IRL-616]` / `[Subject 0912]` in inline code with brackets. Describe in words instead: the REQ-IRL id as the link text for a listing, the subject id for a subject.
+The no-link example in line 10: use a plain REQ-IRL id (e.g. REQ-IRL-18149) instead of a listing name, to match line 12.
+Line 10 repeats "exactly as returned" three times — keep the heading and one sentence: "Use only source_url values a tool returned, copied verbatim."
+In test_routing_overlaps.py, use ALL_FRAGMENTS_TEXT (not SYSTEM_PROMPT) for the no-example-URL test, as the reviewer suggested. Check how ALL_FRAGMENTS_TEXT is imported in existing tests.
