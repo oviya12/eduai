@@ -18,3 +18,24 @@ Check like a strict senior reviewer:
 4. Do the tests catch the bug if it comes back?
 5. Is every point in the issue's "How to confirm the fix" covered?
 Report briefly. Don't edit anything.
+
+
+Investigate GitHub issue #<number>.
+Read it with: gh issue view <number> --repo saama-engineering/Trial-Assistant --comments
+
+Find the root cause. Rules:
+- Start from the evidence in the issue (error text, tool names, example outputs) and grep for them, instead of exploring the repo broadly.
+- Verify every claim in the actual code and cite file:line. Never assume what a tool returns; read it.
+- Check every case the issue mentions, and look for other code paths or tools affected by the same cause.
+- If there are several possible causes, rule each in or out with evidence.
+
+Report briefly:
+1. The problem in 2–3 simple sentences
+2. Root cause, with file:line
+3. Everything affected (all tools/files/cases)
+4. Proposed minimal fix, plus 1–2 alternatives and why you'd pick one
+5. Risks: what else could break
+6. Test to add (prefer extending existing tests nearby)
+7. Anything you're unsure about, and how to confirm it
+
+Don't edit any code.
