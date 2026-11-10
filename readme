@@ -3,3 +3,18 @@ Small follow-ups before I push:
 The no-link example in line 10: use a plain REQ-IRL id (e.g. REQ-IRL-18149) instead of a listing name, to match line 12.
 Line 10 repeats "exactly as returned" three times — keep the heading and one sentence: "Use only source_url values a tool returned, copied verbatim."
 In test_routing_overlaps.py, use ALL_FRAGMENTS_TEXT (not SYSTEM_PROMPT) for the no-example-URL test, as the reviewer suggested. Check how ALL_FRAGMENTS_TEXT is imported in existing tests.
+
+Review PR #<pr-number> in saama-engineering/Trial-Assistant against the issue it fixes.
+
+Read:
+- The issue: gh issue view <issue-number> --repo saama-engineering/Trial-Assistant --comments
+- The PR: gh pr view <pr-number> --repo saama-engineering/Trial-Assistant --comments
+- The diff: gh pr diff <pr-number> --repo saama-engineering/Trial-Assistant
+
+Check like a strict senior reviewer:
+1. Does the change fix what the issue describes, including every case it mentions (e.g. draft and multi-panel listings)? Explain how, in simple words.
+2. Any contradictions with nearby lines, or with what the tools really return? Verify in tool code, cite file:line.
+3. Rules too broad or too narrow? Examples the model could copy literally?
+4. Do the tests catch the bug if it comes back?
+5. Is every point in the issue's "How to confirm the fix" covered?
+Report briefly. Don't edit anything.
