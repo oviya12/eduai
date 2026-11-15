@@ -1,38 +1,42 @@
-Plan approved, with these conditions:
-1. Before coding, show me the line in the issue evidence that confirms the history endpoint accepts the displayed queryid, and where entity_changed=DISCREPANCY_MANAGEMENT comes from. If either is not in the evidence, stop and tell me.
-2. In get_sdq_query_audit's docstring, state that entity_id must be taken from the list_edc_queries row and never derived from the display ID.
-3. Keep the sdq_common.md change to one bullet, same style as the listing-audit bullet.
-4. Keep everything else exactly as planned: no extra files, no refactors.
-5. After implementing, run the full test suite and linter, review git diff as a strict reviewer, then commit on feat/250 without pushing. In the summary, note that config.json changed and needs upload_config.sh after merge.Implement GitHub issue #250 in this repo (saama-engineering/Trial-Assistant).
+Implement GitHub issue #249 in this repo (saama-engineering/Trial-Assistant).
+
+STEP 0 - Branch
+- Start from the latest main on a new branch feat/249. Do NOT branch from feat/250; keep the two PRs independent.
 
 STEP 1 - Understand (no code yet)
-- Run `gh issue view 250` and read it fully, including the collapsed "Request examples and code evidence" section.
-- Find how the existing EDC query-list tool and the IRL audit tool are built: tool definition, API client call, registration, system-prompt docs, tests. These are your templates.
-- Show me a short plan: files to touch, new tool names, endpoints and parameters, tests. Then WAIT for my approval.
+- Run `gh issue view 249` and read it fully, including the collapsed "Request examples and code evidence" section.
+- Study how the existing SDQ read tools are built (tool function, __init__ export, allowed_tools in assistant.py, tool_display_names.py, config.json grants, sdq_common.md, tests). Follow the same pattern.
+- Find how existing SDQ tools enforce study, instance and user access checks. The new tools must use the same mechanism.
+- Show me a short plan: tool names, endpoint and parameters for each (quote the evidence line that confirms it), files to touch, tests. Then WAIT for my approval.
 
 STEP 2 - Implement, within these rules
-Scope:
-- Add two separate READ-ONLY tools: one for a query's EDC history, one for its SDQ audit.
-- Do not modify or reuse the IRL audit tool. Do not add any write or status-update capability.
-- For SDQ audit, take the internal record ID (entity_id) from the query row. Never derive it from the displayed query ID (e.g. VV-012786).
-- Every returned event must say which source it came from (EDC history or SDQ audit).
-- If the audit is empty, report "no SDQ audit entries were returned". Never state or imply the query has no EDC history.
-- Use only the endpoints and fields shown in the issue evidence. If something is missing or unclear, stop and ask me. Do not guess.
+Scope (read-only):
+- Add read-only tools for: (a) the vendor task list, with filters, (b) the available filter values, (c) one task's history.
+- Do NOT add task creation, status changes or any write call.
+- Do NOT use or modify Prism's general task search; it uses a different service.
+- Keep the study, instance and user access checks exactly like the existing SDQ tools.
+- Use only endpoints and fields shown in the issue evidence. If anything is missing or unclear, stop and ask me. Do not guess.
+
+Correctness:
+- When filtered, report the COMPLETE matching count from the API, not just the number of rows on the current page. Handle pagination the same way existing list tools do.
+- If vendor metrics return an empty object, say "no vendor metrics were returned". Never claim the metrics are zero. If metrics aren't needed for this issue, leave them out.
+- An empty task list or empty history must say "none were returned", not "none exist".
 
 Code quality:
-- Smallest diff that solves the issue. Copy the naming, structure, error handling and docstring style of the neighbouring tools.
+- Smallest diff that solves the issue. Match the naming, docstrings and error handling of neighbouring tools.
 - No refactors, renames, formatting changes or new dependencies outside this feature.
 - No dead code, debug prints or commented-out code.
-- Update the system-prompt/tool docs only where the agent needs to know when to use each tool.
+- One short bullet in sdq_common.md saying when to use vendor tasks vs the general task search.
 
-Tests (same style as existing tests):
-- History of VV-002696 returns three entries.
-- Audit of VV-012786 with entity_id 5 returns one entry.
-- Empty audit gives the correct wording.
-- Audit uses entity_id from the row, not the display ID.
+Tests (same file and style as the existing SDQ tool tests):
+- Vendor task list for the study returns TASKSDQ-0029 with status Closed.
+- Filter domain=lb returns that task, and the reported count is the full matching count.
+- History of TASKSDQ-0029 returns three events.
+- Empty list or empty history gives the "none were returned" wording.
+- Each tool sends the study/instance context the access checks require.
 
 STEP 3 - Self-review before committing
 - Run the full test suite and linter; fix failures.
-- Read `git diff` as a strict reviewer: remove anything not required by #250, and check each "How to check it" point in the issue.
-- Commit on branch feat/250 with a clear message. Do not push or open a PR.
-- Give me a summary: what changed, why, and anything you were unsure about.
+- Read `git diff` as a strict reviewer: remove anything #249 doesn't require, and check each "How to check it" point.
+- Commit on feat/249. Do not push or open a PR.
+- Summarize what changed and why, anything you were unsure about, and note that config.json changed and needs upload_config.sh after merge.
