@@ -1,4 +1,9 @@
-Implement GitHub issue #250 in this repo (saama-engineering/Trial-Assistant).
+Plan approved, with these conditions:
+1. Before coding, show me the line in the issue evidence that confirms the history endpoint accepts the displayed queryid, and where entity_changed=DISCREPANCY_MANAGEMENT comes from. If either is not in the evidence, stop and tell me.
+2. In get_sdq_query_audit's docstring, state that entity_id must be taken from the list_edc_queries row and never derived from the display ID.
+3. Keep the sdq_common.md change to one bullet, same style as the listing-audit bullet.
+4. Keep everything else exactly as planned: no extra files, no refactors.
+5. After implementing, run the full test suite and linter, review git diff as a strict reviewer, then commit on feat/250 without pushing. In the summary, note that config.json changed and needs upload_config.sh after merge.Implement GitHub issue #250 in this repo (saama-engineering/Trial-Assistant).
 
 STEP 1 - Understand (no code yet)
 - Run `gh issue view 250` and read it fully, including the collapsed "Request examples and code evidence" section.
