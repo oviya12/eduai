@@ -1,4 +1,14 @@
-Implement GitHub issue #249 in this repo (saama-engineering/Trial-Assistant).
+Plan approved with these changes:
+
+1. Filters: do NOT add /vendor-tasks/filters on a guess. First search the full issue body, including the collapsed "Request examples and code evidence" section (use `gh issue view 249 --json body`), for any filter-values request. The Confidence section says the live UI returned filters, so it may be there.
+   - If found: add a third read-only tool for it, following the same pattern, with a test.
+   - If not found: implement only the two tools, and add one line to the PR summary saying the filter-values tool is pending endpoint evidence.
+
+2. Status filter: "How to check it" requires a domain OR status filter. Check the evidence for a status parameter on /vendor-tasks. If it's there, add it as an optional param with a test. If it isn't, tell me.
+
+3. Use the same per_page default as the existing list tools. Don't introduce a new default.
+
+Everything else as planned. Then implement, run the full tests and linter, self-review git diff, and commit on feat/249 without pushing. Summarize what changed, and note that config.json needs upload_config.sh after merge.Implement GitHub issue #249 in this repo (saama-engineering/Trial-Assistant).
 
 STEP 0 - Branch
 - Start from the latest main on a new branch feat/249. Do NOT branch from feat/250; keep the two PRs independent.
