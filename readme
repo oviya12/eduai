@@ -1,41 +1,33 @@
-Small follow-ups before I push:
- sdq_common.md line 9: don't show `[REQ-IRL-616]` / `[Subject 0912]` in inline code with brackets. Describe in words instead: the REQ-IRL id as the link text for a listing, the subject id for a subject.
-The no-link example in line 10: use a plain REQ-IRL id (e.g. REQ-IRL-18149) instead of a listing name, to match line 12.
-Line 10 repeats "exactly as returned" three times — keep the heading and one sentence: "Use only source_url values a tool returned, copied verbatim."
-In test_routing_overlaps.py, use ALL_FRAGMENTS_TEXT (not SYSTEM_PROMPT) for the no-example-URL test, as the reviewer suggested. Check how ALL_FRAGMENTS_TEXT is imported in existing tests.
+Implement GitHub issue #250 in this repo (saama-engineering/Trial-Assistant).
 
-Review PR #<pr-number> in saama-engineering/Trial-Assistant against the issue it fixes.
+STEP 1 - Understand (no code yet)
+- Run `gh issue view 250` and read it fully, including the collapsed "Request examples and code evidence" section.
+- Find how the existing EDC query-list tool and the IRL audit tool are built: tool definition, API client call, registration, system-prompt docs, tests. These are your templates.
+- Show me a short plan: files to touch, new tool names, endpoints and parameters, tests. Then WAIT for my approval.
 
-Read:
-- The issue: gh issue view <issue-number> --repo saama-engineering/Trial-Assistant --comments
-- The PR: gh pr view <pr-number> --repo saama-engineering/Trial-Assistant --comments
-- The diff: gh pr diff <pr-number> --repo saama-engineering/Trial-Assistant
+STEP 2 - Implement, within these rules
+Scope:
+- Add two separate READ-ONLY tools: one for a query's EDC history, one for its SDQ audit.
+- Do not modify or reuse the IRL audit tool. Do not add any write or status-update capability.
+- For SDQ audit, take the internal record ID (entity_id) from the query row. Never derive it from the displayed query ID (e.g. VV-012786).
+- Every returned event must say which source it came from (EDC history or SDQ audit).
+- If the audit is empty, report "no SDQ audit entries were returned". Never state or imply the query has no EDC history.
+- Use only the endpoints and fields shown in the issue evidence. If something is missing or unclear, stop and ask me. Do not guess.
 
-Check like a strict senior reviewer:
-1. Does the change fix what the issue describes, including every case it mentions (e.g. draft and multi-panel listings)? Explain how, in simple words.
-2. Any contradictions with nearby lines, or with what the tools really return? Verify in tool code, cite file:line.
-3. Rules too broad or too narrow? Examples the model could copy literally?
-4. Do the tests catch the bug if it comes back?
-5. Is every point in the issue's "How to confirm the fix" covered?
-Report briefly. Don't edit anything.
+Code quality:
+- Smallest diff that solves the issue. Copy the naming, structure, error handling and docstring style of the neighbouring tools.
+- No refactors, renames, formatting changes or new dependencies outside this feature.
+- No dead code, debug prints or commented-out code.
+- Update the system-prompt/tool docs only where the agent needs to know when to use each tool.
 
+Tests (same style as existing tests):
+- History of VV-002696 returns three entries.
+- Audit of VV-012786 with entity_id 5 returns one entry.
+- Empty audit gives the correct wording.
+- Audit uses entity_id from the row, not the display ID.
 
-Investigate GitHub issue #<number>.
-Read it with: gh issue view <number> --repo saama-engineering/Trial-Assistant --comments
-
-Find the root cause. Rules:
-- Start from the evidence in the issue (error text, tool names, example outputs) and grep for them, instead of exploring the repo broadly.
-- Verify every claim in the actual code and cite file:line. Never assume what a tool returns; read it.
-- Check every case the issue mentions, and look for other code paths or tools affected by the same cause.
-- If there are several possible causes, rule each in or out with evidence.
-
-Report briefly:
-1. The problem in 2–3 simple sentences
-2. Root cause, with file:line
-3. Everything affected (all tools/files/cases)
-4. Proposed minimal fix, plus 1–2 alternatives and why you'd pick one
-5. Risks: what else could break
-6. Test to add (prefer extending existing tests nearby)
-7. Anything you're unsure about, and how to confirm it
-
-Don't edit any code.
+STEP 3 - Self-review before committing
+- Run the full test suite and linter; fix failures.
+- Read `git diff` as a strict reviewer: remove anything not required by #250, and check each "How to check it" point in the issue.
+- Commit on branch feat/250 with a clear message. Do not push or open a PR.
+- Give me a summary: what changed, why, and anything you were unsure about.
