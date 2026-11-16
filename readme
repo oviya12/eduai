@@ -1,52 +1,44 @@
-Plan approved with these changes:
+You are working in saama-engineering/Trial-Assistant. The attached architecture .md is the source of truth for how Prism is built. Read it fully first.
 
-1. Filters: do NOT add /vendor-tasks/filters on a guess. First search the full issue body, including the collapsed "Request examples and code evidence" section (use `gh issue view 249 --json body`), for any filter-values request. The Confidence section says the live UI returned filters, so it may be there.
-   - If found: add a third read-only tool for it, following the same pattern, with a test.
-   - If not found: implement only the two tools, and add one line to the PR summary saying the filter-values tool is pending endpoint evidence.
+TASK: Plan GitHub issue #323 (PRIS-18) as ONE pull request built in ordered commits. Do NOT write code in this session.
 
-2. Status filter: "How to check it" requires a domain OR status filter. Check the evidence for a status parameter on /vendor-tasks. If it's there, add it as an optional param with a test. If it isn't, tell me.
+STEP 1 - Read
+- `gh issue view 323 --json body,comments`: every table, rule and open question.
+- Related: `gh issue view` 249, 250, 251, 252, 253, 256, 259. Check main and open PRs for code to reuse; don't duplicate it.
+- .claude/rules/sdq-irl-pipeline.md (the approval-card write pattern).
+- Existing code: list_edc_queries, get_edc_query_filters, the IRL write pipeline (hook, card kind, audit record, tampered-arguments test), config.json capability_matrix and servers_for, and persona resolution at turn start.
 
-3. Use the same per_page default as the existing list tools. Don't introduce a new default.
+STEP 2 - Write the plan to .claude/plans/323-plan.md (do not commit it)
+A. Coverage map: every row of the issue's tables marked Done / Partial / Missing / Out of scope / Blocked.
+B. Commit sequence on branch feat/323-discrepancy-management, in dependency order, each commit self-contained with its own tests passing:
+   C1 Extend list_edc_queries + get_edc_query_filters (missing params; build for 26R3, tolerate 26R2.1)
+   C2 Remaining EDC reads: metrics, pd-details, deeplinks, saved-filter listing, export gated by is_export_disabled
+   C3 Vendor task reads: list, filters, metrics, history (reuse #249)
+   C4 Access foundation: study access READ/WRITE + role per instance at turn start; kill-switch message; new roles and read-only variants in the capability matrix
+   C5 Write: EDC query status (single + bulk) with all validation rules in the hook
+   C6 Write: bookmark (single + bulk)
+   C7 Write: mark as PD
+   C8 Write: vendor task status (only if open question 1 is resolved)
+   For each commit: files, tools, endpoints (quote the issue line), tests, and the issue rules it covers.
+C. Rules checklist: every rule in "Rules Prism must follow", "Every write needs approval", "Roles" and "Read-only access", each assigned to a commit. None unassigned.
+D. Blockers: the 4 open questions plus any new ones, with what each blocks and a recommended answer.
+E. Risks: 26R2.1 vs 26R3, the pending branch merge, and anything INFERRED.
 
-Everything else as planned. Then implement, run the full tests and linter, self-review git diff, and commit on feat/249 without pushing. Summarize what changed, and note that config.json needs upload_config.sh after merge.Implement GitHub issue #249 in this repo (saama-engineering/Trial-Assistant).
+Rules: use only endpoints and behaviour from the issue or the code; label inferences "INFERRED"; never invent endpoints or grants. Show me a summary and STOP.
 
-STEP 0 - Branch
-- Start from the latest main on a new branch feat/249. Do NOT branch from feat/250; keep the two PRs independent.
 
-STEP 1 - Understand (no code yet)
-- Run `gh issue view 249` and read it fully, including the collapsed "Request examples and code evidence" section.
-- Study how the existing SDQ read tools are built (tool function, __init__ export, allowed_tools in assistant.py, tool_display_names.py, config.json grants, sdq_common.md, tests). Follow the same pattern.
-- Find how existing SDQ tools enforce study, instance and user access checks. The new tools must use the same mechanism.
-- Show me a short plan: tool names, endpoint and parameters for each (quote the evidence line that confirms it), files to touch, tests. Then WAIT for my approval.
+Implement commit CN of .claude/plans/323-plan.md on branch feat/323-discrepancy-management (create it from the latest main if it doesn't exist). Use the architecture .md and the plan as context.
 
-STEP 2 - Implement, within these rules
-Scope (read-only):
-- Add read-only tools for: (a) the vendor task list, with filters, (b) the available filter values, (c) one task's history.
-- Do NOT add task creation, status changes or any write call.
-- Do NOT use or modify Prism's general task search; it uses a different service.
-- Keep the study, instance and user access checks exactly like the existing SDQ tools.
-- Use only endpoints and fields shown in the issue evidence. If anything is missing or unclear, stop and ask me. Do not guess.
+First, restate this commit's scope, files, endpoints (with the quoted issue line) and tests in under 15 lines, then WAIT for my approval.
 
-Correctness:
-- When filtered, report the COMPLETE matching count from the API, not just the number of rows on the current page. Handle pagination the same way existing list tools do.
-- If vendor metrics return an empty object, say "no vendor metrics were returned". Never claim the metrics are zero. If metrics aren't needed for this issue, leave them out.
-- An empty task list or empty history must say "none were returned", not "none exist".
+Rules:
+- Implement ONLY commit CN. Anything else goes under "Follow-ups" in the summary.
+- Follow existing patterns exactly. Writes use the existing approval-card pipeline: the hook resolves the payload, the tool reads it back, and the model's arguments are never written directly. Each write has its own card kind, copy, audit record and tampered-arguments test. Bulk cards list every item.
+- All validation and permission checks go in the hook, before the card. Hiding a tool is not enough.
+- Read-only role or study: never show a card the user can't complete; use the issue's read-only message. A kill-switch 403 says "not enabled for this study".
+- Build for 26R3 and tolerate 26R2.1.
+- Smallest diff: no refactors, renames, reformatting, new dependencies or dead code.
 
-Code quality:
-- Smallest diff that solves the issue. Match the naming, docstrings and error handling of neighbouring tools.
-- No refactors, renames, formatting changes or new dependencies outside this feature.
-- No dead code, debug prints or commented-out code.
-- One short bullet in sdq_common.md saying when to use vendor tasks vs the general task search.
+Tests: the happy path plus each validation rule; read-only role, read-only study, Developer/Tester on Live, kill-switch 403; for writes, also tampered arguments and cancel.
 
-Tests (same file and style as the existing SDQ tool tests):
-- Vendor task list for the study returns TASKSDQ-0029 with status Closed.
-- Filter domain=lb returns that task, and the reported count is the full matching count.
-- History of TASKSDQ-0029 returns three events.
-- Empty list or empty history gives the "none were returned" wording.
-- Each tool sends the study/instance context the access checks require.
-
-STEP 3 - Self-review before committing
-- Run the full test suite and linter; fix failures.
-- Read `git diff` as a strict reviewer: remove anything #249 doesn't require, and check each "How to check it" point.
-- Commit on feat/249. Do not push or open a PR.
-- Summarize what changed and why, anything you were unsure about, and note that config.json changed and needs upload_config.sh after merge.
+Finish: run the full test suite and linter, review `git diff` strictly, then commit with the message "#323 CN: <title>". Do not push. Update the plan file's checklist and summarize.
