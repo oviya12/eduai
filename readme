@@ -1,4 +1,9 @@
-Context: PR #304 (merged into 2026R3) moved the IRL hooks' decision checks into pure predicates in sdq_hook/policy.py, and added assessment.py plus check_sdq_permission so the same rules can answer "can I do X?" without executing. My manager asked me to align my open PR #328 with that pattern before the next PR.
+Decision on check B: do NOT add EFFICACY_REVIEWER to any DM write group (bookmark is not covered, and Efficacy Reviewer's own-role and blinding limits are not implemented in Prism). I'll handle it in a follow-up.
+
+One more check before applying (no edits yet):
+C. List EVERY role that has pd_mark_write, pd_mark_discrepancy_write or irl_discrepancy_management on Live (is_primary_instance=true), with file:line. Include SITE_MONITOR, CRO_DM and DATA_MANAGER explicitly.
+D. For those grants and for edc_queries_write / vendor_task_write: confirm that no later changelog or SQL script (25R2, 26R1, 26R2, permission_cleanup_script) deletes or revokes them. Answer per module: "not revoked" or "REVOKED at file:line".
+Show the results and WAIT.Context: PR #304 (merged into 2026R3) moved the IRL hooks' decision checks into pure predicates in sdq_hook/policy.py, and added assessment.py plus check_sdq_permission so the same rules can answer "can I do X?" without executing. My manager asked me to align my open PR #328 with that pattern before the next PR.
 
 STEP 0 - Clean up
 - Discard the uncommitted changes to agent/config/config.json and remove the test test_dm_write_groups_match_sdq_source_seeds from tests/test_sdq_tools.py. Role-group changes are NOT part of this task.
