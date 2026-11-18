@@ -1,22 +1,13 @@
-Fix all review comments on my PR #328 (saama-engineering/Trial-Assistant). Be efficient; no long explanations.
 
-Reference: SDQ source (release26r3) is at /Users/<you>/sdq-code. READ-ONLY, never edit it. Verify every SDQ file:line that reviewer cites before fixing. If the SDQ source contradicts the review or my code, stop and tell me.
+1. I installed the missing modules (regex, vl-convert-python, google-genai). Run the FULL suite: pytest agent/tests -q. Report exact passed/failed. Fix any failure caused by this PR.
 
-1. Fetch ALL review comments, including collapsed ones:
-   gh api repos/saama-engineering/Trial-Assistant/pulls/328/comments --paginate
-   gh pr view 328 --comments
-   Save a checklist to .claude/plans/328-review.md, in Kamal's suggested order (1-7 + missing tests). Don't stop here.
+2. Confirm these review items with file:line, or fix them now:
+   a. DM export: a row is only delivered if it belongs to the caller (export row triggered by another user is refused).
+   b. Account-wide DM disable: Kamal said read it from the user's module permissions (discrepancy_management module absent → disabled, see SDQ modules/auth/permission/service.py:29-31). Show where my code handles this and what message the user gets. If it isn't handled, implement it.
+   c. Missing tests Kamal listed: end-to-end DM write (hook → card fields → approval → tool → payload sent), bookmark card with is_bookmark=false, kill-switch caching + "could not check" path, export row by another user, posted_by_sdq list. Add any that are missing.
 
-2. Work through the checklist in order. For each item:
-   - Apply reviewer's suggested fix exactly, smallest diff, no refactors.
-   - Run the FULL agent suite: pytest agent/tests -q (local conftest handles secrets; never use real AWS).
-   - If green (or failures only from items not done yet), commit as "#328 review: <short item title>". Never commit agent/tests/conftest.py or .claude/plans/.
-   - Tick it in the checklist with a one-line note of what changed.
+3. Do NOT add MEDICAL_MONITOR to config (comment 17 stays as is).
 
-3. STOP and ask me only when:
-   - the fix is frontend (ListingReviewCard.tsx / processMessages.ts / ChatPage.tsx); list what's needed, don't start,
-   - reviewer marked something "inferred" / "unconfirmed" / "live check on Dev",
-   - a test failure isn't explained by a remaining item,
-   - the SDQ source disagrees with the review.
-
-4. At the end: show the full suite result (passed/failed), `git log --oneline` of the new commits, and a short list "done / needs me / needs Dev check". Do not push.
+4. Then commit everything except .claude/plans/ and agent/tests/conftest.py as:
+   "#328 review: fix tool names, allowed_tools, kill switch, export scope, pre-checks and tests"
+   Show git status and git log --oneline -3. Do not push.
