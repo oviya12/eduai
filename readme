@@ -1,44 +1,28 @@
-You are working in saama-engineering/Trial-Assistant. The attached architecture .md is the source of truth for how Prism is built. Read it fully first.
+Context: PR #304 (merged into 2026R3) moved the IRL hooks' decision checks into pure predicates in sdq_hook/policy.py, and added assessment.py plus check_sdq_permission so the same rules can answer "can I do X?" without executing. My manager asked me to align my open PR #328 with that pattern before the next PR.
 
-TASK: Plan GitHub issue #323 (PRIS-18) as ONE pull request built in ordered commits. Do NOT write code in this session.
+STEP 0 - Clean up
+- Discard the uncommitted changes to agent/config/config.json and remove the test test_dm_write_groups_match_sdq_source_seeds from tests/test_sdq_tools.py. Role-group changes are NOT part of this task.
 
-STEP 1 - Read
-- `gh issue view 323 --json body,comments`: every table, rule and open question.
-- Related: `gh issue view` 249, 250, 251, 252, 253, 256, 259. Check main and open PRs for code to reuse; don't duplicate it.
-- .claude/rules/sdq-irl-pipeline.md (the approval-card write pattern).
-- Existing code: list_edc_queries, get_edc_query_filters, the IRL write pipeline (hook, card kind, audit record, tampered-arguments test), config.json capability_matrix and servers_for, and persona resolution at turn start.
+STEP 1 - Understand #304 (no code yet)
+- Read `gh pr view 304` and `gh pr diff 304`. Study sdq_hook/policy.py, assessment.py, tests/test_sdq_permission_check.py, and how one IRL hook now calls policy and exposes its *_checks() function.
+- Read my DM write hooks in this branch (update EDC query status, bookmark, mark PD, update vendor task status).
+- Show me a plan: for each of my 4 writes, which checks move into policy predicates, which refusal category each returns, and how it gets registered in assessment.py. Then WAIT for my approval.
 
-STEP 2 - Write the plan to .claude/plans/323-plan.md (do not commit it)
-A. Coverage map: every row of the issue's tables marked Done / Partial / Missing / Out of scope / Blocked.
-B. Commit sequence on branch feat/323-discrepancy-management, in dependency order, each commit self-contained with its own tests passing:
-   C1 Extend list_edc_queries + get_edc_query_filters (missing params; build for 26R3, tolerate 26R2.1)
-   C2 Remaining EDC reads: metrics, pd-details, deeplinks, saved-filter listing, export gated by is_export_disabled
-   C3 Vendor task reads: list, filters, metrics, history (reuse #249)
-   C4 Access foundation: study access READ/WRITE + role per instance at turn start; kill-switch message; new roles and read-only variants in the capability matrix
-   C5 Write: EDC query status (single + bulk) with all validation rules in the hook
-   C6 Write: bookmark (single + bulk)
-   C7 Write: mark as PD
-   C8 Write: vendor task status (only if open question 1 is resolved)
-   For each commit: files, tools, endpoints (quote the issue line), tests, and the issue rules it covers.
-C. Rules checklist: every rule in "Rules Prism must follow", "Every write needs approval", "Roles" and "Read-only access", each assigned to a commit. None unassigned.
-D. Blockers: the 4 open questions plus any new ones, with what each blocks and a recommended answer.
-E. Risks: 26R2.1 vs 26R3, the pending branch merge, and anything INFERRED.
+STEP 2 - Implement after approval
+- Merge upstream 2026R3 into my branch (the same way #304 did it: "Merge upstream 2026R3 into <branch>"). Resolve conflicts, especially dispatch.py, by keeping #304's structure AND my kill-switch fix. Explain each conflict resolution to me.
+- Move my DM write decision checks (role/permission, read-only, kill switch, same-state check, target in query_action, no bulk on PD queries, comment required for re-query/re-open, Rave marking group, Veeva sdq_role) into pure predicates following #304's pattern exactly.
+- Hooks call these predicates. Behaviour must not change.
+- Each DM hook exposes its *_checks() and is registered in assessment.py, so check_sdq_permission covers the DM writes too.
+- Smallest diff: no refactors outside this, no renames, no behaviour changes.
 
-Rules: use only endpoints and behaviour from the issue or the code; label inferences "INFERRED"; never invent endpoints or grants. Show me a summary and STOP.
+STEP 3 - Verify
+- Run the full test suite, including test_sdq_permission_check.py. My existing DM tests must pass unchanged.
+- Review git diff strictly, then summarize in simple terms what changed and why.
+- Do not commit or push until I say.
 
 
-Implement commit CN of .claude/plans/323-plan.md on branch feat/323-discrepancy-management (create it from the latest main if it doesn't exist). Use the architecture .md and the plan as context.
-
-First, restate this commit's scope, files, endpoints (with the quoted issue line) and tests in under 15 lines, then WAIT for my approval.
-
-Rules:
-- Implement ONLY commit CN. Anything else goes under "Follow-ups" in the summary.
-- Follow existing patterns exactly. Writes use the existing approval-card pipeline: the hook resolves the payload, the tool reads it back, and the model's arguments are never written directly. Each write has its own card kind, copy, audit record and tampered-arguments test. Bulk cards list every item.
-- All validation and permission checks go in the hook, before the card. Hiding a tool is not enough.
-- Read-only role or study: never show a card the user can't complete; use the issue's read-only message. A kill-switch 403 says "not enabled for this study".
-- Build for 26R3 and tolerate 26R2.1.
-- Smallest diff: no refactors, renames, reformatting, new dependencies or dead code.
-
-Tests: the happy path plus each validation rule; read-only role, read-only study, Developer/Tester on Live, kill-switch 403; for writes, also tampered arguments and cancel.
-
-Finish: run the full test suite and linter, review `git diff` strictly, then commit with the message "#323 CN: <title>". Do not push. Update the plan file's checklist and summarize.
+Don't change any code. In the SDQ source (sdq-core-backend-service, release26r3):
+1. Quote file:line for every seed that grants edc_queries_write, vendor_task_write and pd_mark_write, and list the roles for each.
+2. Does SDQ's permission check skip module rules for ROLES_WITH_FULL_STUDY_ACCESS (ACCOUNT_ADMIN, SDQ_ADMIN)? Quote the code.
+3. How does EFFICACY_REVIEWER get update-status through irl_discrepancy_management? Quote the seed and the code path.
+Give the answer as a table: role | can it actually write in SDQ? | evidence.
