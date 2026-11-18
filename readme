@@ -1,4 +1,10 @@
+Verified on Live as a MEDICAL_MONITOR user: /auth/user/meta returns edc_queries_write and vendor_task_write (both is_active: true).
+Add SDQ_MEDICAL_MONITOR to the edc_query_write and vendor_task_write role lists in config.json.
+Update test_dm_write_groups_match_sdq_source_seeds to pin the new sets, with a comment: "MEDICAL_MONITOR verified on Live via /auth/user/meta (2026-11-18); seed: 24R2 roles_and_permission_change.sql".
+Edit nothing else. Run the full suite and include it in the review commit.
 
+
+Don't change code. In the SDQ source (release26r3) at /Users/<you>/sdq-code: does any 26R3 migration (changelog/SQL) remove, deactivate or change SDQ_MEDICAL_MONITOR's edc_queries_write or vendor_task_write grants? Answer "not changed in 26R3" or quote file:line.
 1. I installed the missing modules (regex, vl-convert-python, google-genai). Run the FULL suite: pytest agent/tests -q. Report exact passed/failed. Fix any failure caused by this PR.
 
 2. Confirm these review items with file:line, or fix them now:
