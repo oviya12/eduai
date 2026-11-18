@@ -1,4 +1,16 @@
-Context: PR #304 (merged into 2026R3) moved the IRL hooks' decision checks into pure predicates in sdq_hook/policy.py, and added assessment.py plus check_sdq_permission so the same rules can answer "can I do X?" without executing. My manager asked me to align my open PR #328 with that pattern before the next PR.
+Plan mostly approved, with these changes. Answer points 1 and 4 first, then implement.
+
+1. Account for EVERY check, not just input/state ones: role/permission, read-only (Developer/Tester/Lead Developer on Live), DM kill switch, Rave marking group, Veeva sdq_role. For each, tell me where it lives today (file:line) and how check_sdq_permission will reflect it. A user who would be refused at execution time must never get "yes" from the assessment. If a check is I/O-based (like the kill switch in dispatch.py), say how the assessment handles it (e.g. UNAVAILABLE / could_not_check) rather than skipping it. Don't invent checks that don't exist in my code.
+
+2. Scope the _readiness change to DM tools only. Don't change the condition for other tools. Use something like `if not study_id and tool not in DM_WRITE_TOOLS` (or the existing DM tool set), so non-DM behaviour stays exactly the same.
+
+3. If #304's policy.py already has a generic helper for "required input missing", reuse it instead of one predicate per field. Only add DM-specific predicates where logic is DM-specific (transitions, mixed states, PD bulk, not PD-based).
+
+4. Tests: add focused tests in test_sdq_permission_check.py (same style as the IRL ones) for the DM tools: one "yes", one missing input → yes_once_inputs_given, one STATE refusal → no, one role denied → no, one Developer-on-Live → no. Tell me which existing tests cover the hooks' unchanged behaviour.
+
+Note: you mentioned policy.py's import chain reaches RedisCache/get_secret_value at import time. If that breaks running the tests in isolation, mock it the same way existing tests do. Don't use real secrets.
+
+Then implement, run: pytest agent/tests/test_sdq_tools.py agent/tests/test_sdq_permission_check.py -q, show git diff --stat, and summarize. Don't commit until I say.Context: PR #304 (merged into 2026R3) moved the IRL hooks' decision checks into pure predicates in sdq_hook/policy.py, and added assessment.py plus check_sdq_permission so the same rules can answer "can I do X?" without executing. My manager asked me to align my open PR #328 with that pattern before the next PR.
 
 I have already merged upstream 2026R3 into this branch myself and resolved the conflicts (merge commit is HEAD). The DM write role lists in config.json are final. Do NOT change them.
 
