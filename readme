@@ -1,9 +1,22 @@
 Decision on check B: do NOT add EFFICACY_REVIEWER to any DM write group (bookmark is not covered, and Efficacy Reviewer's own-role and blinding limits are not implemented in Prism). I'll handle it in a follow-up.
+Confirmed. Apply Step 2 with these exact role sets (use the role spelling already in config.json):
 
-One more check before applying (no edits yet):
-C. List EVERY role that has pd_mark_write, pd_mark_discrepancy_write or irl_discrepancy_management on Live (is_primary_instance=true), with file:line. Include SITE_MONITOR, CRO_DM and DATA_MANAGER explicitly.
-D. For those grants and for edc_queries_write / vendor_task_write: confirm that no later changelog or SQL script (25R2, 26R1, 26R2, permission_cleanup_script) deletes or revokes them. Answer per module: "not revoked" or "REVOKED at file:line".
-Show the results and WAIT.Context: PR #304 (merged into 2026R3) moved the IRL hooks' decision checks into pure predicates in sdq_hook/policy.py, and added assessment.py plus check_sdq_permission so the same rules can answer "can I do X?" without executing. My manager asked me to align my open PR #328 with that pattern before the next PR.
+- edc_query_write = SDQ_DATA_MANAGER, SDQ_CODING_REVIEWER, SDQ_CENTRAL_MONITOR, SDQ_SAFETY_REVIEWER, SDQ_SAFETY_SPECIALIST, SDQ_LAB_REVIEWER
+- vendor_task_write = the same 6 roles
+- pd_mark = SDQ_MEDICAL_MONITOR, SDQ_CODING_REVIEWER, SDQ_CENTRAL_MONITOR, SDQ_SAFETY_REVIEWER, SDQ_SAFETY_SPECIALIST, SDQ_LAB_REVIEWER, SDQ_SITE_MONITOR, SDQ_CRO_DM
+- Do NOT add SDQ_EFFICACY_REVIEWER, SDQ_ACCOUNT_ADMIN or SDQ_SDQ_ADMIN to any of these groups.
+
+Rules:
+- Edit ONLY these three role lists in config.json and the test test_dm_write_groups_match_sdq_source_seeds. Nothing else.
+- In the test, pin these exact sets and add a short comment per group citing the evidence:
+  edc_queries_write / vendor_task_write: permission_update.sql + permission_cleanup_script.sql lines you found;
+  pd_mark: 25R2/pd_permissions.sql:42 (pd_mark_write, Medical Monitor) and 26R1/changelog.xml:1250-1306 (pd_mark_discrepancy_write), module covers POST /api/v1/pd/mark at 26R1/changelog.xml:1413.
+  Also note in a comment: EFFICACY_REVIEWER excluded because irl_discrepancy_management does not cover the bookmark endpoint; follow-up needed.
+
+Verify:
+- Show `git diff --stat` (must list only config.json and tests/test_sdq_tools.py) and the diff of the role lists.
+- Run the full test suite.
+- Commit as "#323: align DM write roles with SDQ seed grants". Do not push..Context: PR #304 (merged into 2026R3) moved the IRL hooks' decision checks into pure predicates in sdq_hook/policy.py, and added assessment.py plus check_sdq_permission so the same rules can answer "can I do X?" without executing. My manager asked me to align my open PR #328 with that pattern before the next PR.
 
 STEP 0 - Clean up
 - Discard the uncommitted changes to agent/config/config.json and remove the test test_dm_write_groups_match_sdq_source_seeds from tests/test_sdq_tools.py. Role-group changes are NOT part of this task.
