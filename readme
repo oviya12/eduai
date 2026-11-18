@@ -26,3 +26,27 @@ Don't change any code. In the SDQ source (sdq-core-backend-service, release26r3)
 2. Does SDQ's permission check skip module rules for ROLES_WITH_FULL_STUDY_ACCESS (ACCOUNT_ADMIN, SDQ_ADMIN)? Quote the code.
 3. How does EFFICACY_REVIEWER get update-status through irl_discrepancy_management? Quote the seed and the code path.
 Give the answer as a table: role | can it actually write in SDQ? | evidence.
+
+Apply an exact role change to the DM write groups in agent/config/config.json. I have already decided the roles from your evidence table. Your job is to apply it, plus two checks. Do not make any other decision.
+
+STEP 1 - Two checks first (no edits yet)
+A. For /api/v1/pd/mark: quote the module_api_rule (file:line) showing which modules allow it. Then for CODING_REVIEWER, CENTRAL_MONITOR, SAFETY_REVIEWER, SAFETY_SPECIALIST, LAB_REVIEWER: does any of their seeded modules include it on Live? Answer YES (with file:line) or NOT FOUND for each.
+B. List the tools inside the edc_query_write group. For each tool's SDQ endpoint, does irl_discrepancy_management allow it (file:line)? Answer YES or NOT FOUND per endpoint.
+Show me the answers and WAIT.
+
+STEP 2 - After I confirm, apply exactly this:
+- edc_query_write roles = SDQ_DATA_MANAGER, SDQ_CODING_REVIEWER, SDQ_CENTRAL_MONITOR, SDQ_SAFETY_REVIEWER, SDQ_SAFETY_SPECIALIST, SDQ_LAB_REVIEWER, SDQ_EFFICACY_REVIEWER
+- vendor_task_write roles = the same 6 roles, WITHOUT SDQ_EFFICACY_REVIEWER
+- pd_mark roles = SDQ_MEDICAL_MONITOR, SDQ_EFFICACY_REVIEWER, plus any reviewer that got YES in check A
+- If check B is NOT FOUND for any edc_query_write tool, do NOT add EFFICACY_REVIEWER. Stop and tell me instead.
+
+RULES
+- Edit ONLY these three role lists in config.json and the test test_dm_write_groups_match_sdq_source_seeds. Nothing else: no tools, no other groups, no other files.
+- Use the role-name spelling that already exists in config.json.
+- Update that test to pin exactly these role sets, with a comment citing the evidence file:line for each group.
+- If anything doesn't match what I wrote (a group name missing, a role spelled differently), STOP and ask. Don't work around it.
+
+STEP 3 - Verify
+- Show `git diff --stat` (it must list only config.json and tests/test_sdq_tools.py) and the full diff of the role lists.
+- Run the full test suite.
+- Commit as "#323: align DM write roles with SDQ seed grants". Do not push.
