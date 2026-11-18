@@ -1,41 +1,22 @@
-Plan mostly approved, with these changes. Answer points 1 and 4 first, then implement.
+Fix all review comments on my PR #328 (saama-engineering/Trial-Assistant). Be efficient; no long explanations.
 
-1. Account for EVERY check, not just input/state ones: role/permission, read-only (Developer/Tester/Lead Developer on Live), DM kill switch, Rave marking group, Veeva sdq_role. For each, tell me where it lives today (file:line) and how check_sdq_permission will reflect it. A user who would be refused at execution time must never get "yes" from the assessment. If a check is I/O-based (like the kill switch in dispatch.py), say how the assessment handles it (e.g. UNAVAILABLE / could_not_check) rather than skipping it. Don't invent checks that don't exist in my code.
+Reference: SDQ source (release26r3) is at /Users/<you>/sdq-code. READ-ONLY, never edit it. Verify every SDQ file:line that reviewer cites before fixing. If the SDQ source contradicts the review or my code, stop and tell me.
 
-2. Scope the _readiness change to DM tools only. Don't change the condition for other tools. Use something like `if not study_id and tool not in DM_WRITE_TOOLS` (or the existing DM tool set), so non-DM behaviour stays exactly the same.
+1. Fetch ALL review comments, including collapsed ones:
+   gh api repos/saama-engineering/Trial-Assistant/pulls/328/comments --paginate
+   gh pr view 328 --comments
+   Save a checklist to .claude/plans/328-review.md, in Kamal's suggested order (1-7 + missing tests). Don't stop here.
 
-3. If #304's policy.py already has a generic helper for "required input missing", reuse it instead of one predicate per field. Only add DM-specific predicates where logic is DM-specific (transitions, mixed states, PD bulk, not PD-based).
+2. Work through the checklist in order. For each item:
+   - Apply reviewer's suggested fix exactly, smallest diff, no refactors.
+   - Run the FULL agent suite: pytest agent/tests -q (local conftest handles secrets; never use real AWS).
+   - If green (or failures only from items not done yet), commit as "#328 review: <short item title>". Never commit agent/tests/conftest.py or .claude/plans/.
+   - Tick it in the checklist with a one-line note of what changed.
 
-4. Tests: add focused tests in test_sdq_permission_check.py (same style as the IRL ones) for the DM tools: one "yes", one missing input → yes_once_inputs_given, one STATE refusal → no, one role denied → no, one Developer-on-Live → no. Tell me which existing tests cover the hooks' unchanged behaviour.
+3. STOP and ask me only when:
+   - the fix is frontend (ListingReviewCard.tsx / processMessages.ts / ChatPage.tsx); list what's needed, don't start,
+   - reviewer marked something "inferred" / "unconfirmed" / "live check on Dev",
+   - a test failure isn't explained by a remaining item,
+   - the SDQ source disagrees with the review.
 
-Note: you mentioned policy.py's import chain reaches RedisCache/get_secret_value at import time. If that breaks running the tests in isolation, mock it the same way existing tests do. Don't use real secrets.
-
-Then implement, run: pytest agent/tests/test_sdq_tools.py agent/tests/test_sdq_permission_check.py -q, show git diff --stat, and summarize. Don't commit until I say.Context: PR #304 (merged into 2026R3) moved the IRL hooks' decision checks into pure predicates in sdq_hook/policy.py, and added assessment.py plus check_sdq_permission so the same rules can answer "can I do X?" without executing. My manager asked me to align my open PR #328 with that pattern before the next PR.
-
-I have already merged upstream 2026R3 into this branch myself and resolved the conflicts (merge commit is HEAD). The DM write role lists in config.json are final. Do NOT change them.
-
-STEP 0 - Review my merge (no edits yet)
-- Check the merge commit's conflict resolutions, especially dispatch.py, config.json, sdq_tools/__init__.py, tool_display_names.py, constants.py and sdq_common.md.
-- Confirm: #304's structure is kept (policy.STAGE_OWNERS, policy.HELD_TO_RUN etc.), my kill-switch fix is still present, there are no duplicate entries, no conflict markers, and nothing from either side was lost.
-- Report any problem with file:line. Don't fix anything yet.
-
-STEP 1 - Understand #304 (no code yet)
-- Read `gh pr view 304` and `gh pr diff 304`. Study sdq_hook/policy.py, assessment.py, tests/test_sdq_permission_check.py, and how one IRL hook now calls policy and exposes its *_checks() function.
-- Read my DM write hooks in this branch (update EDC query status, bookmark, mark PD, update vendor task status).
-- Note: test_sdq_permission_check.py is EXPECTED to fail right now, because my 4 DM writes are in _GATED_WRITES but not registered in assessment.py. That's what this task fixes.
-- Show me a plan: for each of my 4 writes, which checks move into policy predicates, which refusal category each returns, and how it gets registered in assessment.py. Then WAIT for my approval.
-
-STEP 2 - Implement after approval
-- Move my DM write decision checks (role/permission, read-only, kill switch, same-state check, target in query_action, no bulk on PD queries, comment required for re-query/re-open, Rave marking group, Veeva sdq_role) into pure predicates following #304's pattern exactly.
-- Hooks call these predicates. Behaviour must not change.
-- Each DM hook exposes its *_checks() and is registered in assessment.py, so check_sdq_permission covers the DM writes too.
-- Smallest diff: no refactors outside this, no renames, no behaviour changes. Don't touch the config.json role lists.
-
-STEP 3 - Verify
-- I have no AWS credentials, so don't run the full suite. Run:
-  pytest agent/tests/test_sdq_tools.py agent/tests/test_sdq_permission_check.py -q
-  plus any other test file that imports the DM hooks, policy.py or assessment.py (list them first).
-- If a test fails ONLY for missing AWS credentials, retry with dummy env values: AWS_ACCESS_KEY_ID=testing AWS_SECRET_ACCESS_KEY=testing AWS_DEFAULT_REGION=us-east-1. Never use real credentials or call real AWS.
-- My existing DM tests must pass unchanged, and test_sdq_permission_check.py must now pass.
-- Show `git diff --stat`, review the diff strictly, and summarize in simple terms what changed and why.
-- Do not commit or push until I say.
+4. At the end: show the full suite result (passed/failed), `git log --oneline` of the new commits, and a short list "done / needs me / needs Dev check". Do not push.
