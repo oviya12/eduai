@@ -1,19 +1,25 @@
-Verified on Live as a MEDICAL_MONITOR user: /auth/user/meta returns edc_queries_write and vendor_task_write (both is_active: true).
-Add SDQ_MEDICAL_MONITOR to the edc_query_write and vendor_task_write role lists in config.json.
-Update test_dm_write_groups_match_sdq_source_seeds to pin the new sets, with a comment: "MEDICAL_MONITOR verified on Live via /auth/user/meta (2026-11-18); seed: 24R2 roles_and_permission_change.sql".
-Edit nothing else. Run the full suite and include it in the review commit.
+Review teammate PR #<NUMBER> in saama-engineering/Trial-Assistant. Review only. Do NOT edit any code, do NOT commit, do NOT push, do NOT post anything to GitHub. My manager wants comments, not fixes.
 
+STEP 0 - Isolate (no edits to my branch)
+- Read the PR metadata: `gh pr view <NUMBER> --json title,body,headRefName,baseRefName,files,additions,deletions`. If it references an issue, read that too (`gh issue view <ISSUE>`) and treat its requirements as the spec.
+- Create a separate worktree for the PR: `git fetch origin pull/<NUMBER>/head:review-pr-<NUMBER>` then `git worktree add ../review-pr-<NUMBER> review-pr-<NUMBER>`. Work only inside that worktree. My own branch must stay untouched.
 
-Don't change code. In the SDQ source (release26r3) at /Users/<you>/sdq-code: does any 26R3 migration (changelog/SQL) remove, deactivate or change SDQ_MEDICAL_MONITOR's edc_queries_write or vendor_task_write grants? Answer "not changed in 26R3" or quote file:line.
-1. I installed the missing modules (regex, vl-convert-python, google-genai). Run the FULL suite: pytest agent/tests -q. Report exact passed/failed. Fix any failure caused by this PR.
+STEP 1 - Split (no review yet)
+- Group the changed files into chunks of about 300-400 changed lines each, by module or feature (e.g. tools, hooks, config, tests, frontend). Keep related files in the same chunk.
+- Save the chunk list to .claude/plans/review-<NUMBER>-chunks.md with file names and line counts.
+- Show me the chunks and WAIT for me to say "review chunk 1".
 
-2. Confirm these review items with file:line, or fix them now:
-   a. DM export: a row is only delivered if it belongs to the caller (export row triggered by another user is refused).
-   b. Account-wide DM disable: Kamal said read it from the user's module permissions (discrepancy_management module absent → disabled, see SDQ modules/auth/permission/service.py:29-31). Show where my code handles this and what message the user gets. If it isn't handled, implement it.
-   c. Missing tests Kamal listed: end-to-end DM write (hook → card fields → approval → tool → payload sent), bookmark card with is_bookmark=false, kill-switch caching + "could not check" path, export row by another user, posted_by_sdq list. Add any that are missing.
+STEP 2 - Review one chunk per request
+When I say "review chunk K":
+- Read only that chunk's diff (`gh pr diff <NUMBER> -- <files>`). Open surrounding code in the worktree only when a finding needs it.
+- Look for: bugs, missing or wrong permission/validation checks, behaviour that doesn't match the issue, missing or weak tests, error handling, duplicated logic, and unclear naming that breaks neighbouring conventions. Skip pure style nits.
+- For each finding give: file:line, severity (Blocker / High / Nit / Question), a one-line description of the problem, and a ready-to-paste GitHub comment written politely, suggesting a fix without making it.
+- Only report what you verified in the code. If you're not sure, mark it "Question" instead of stating it as a bug.
+- Append findings to .claude/plans/review-<NUMBER>-findings.md.
+- Then STOP and wait for the next chunk.
 
-3. Do NOT add MEDICAL_MONITOR to config (comment 17 stays as is).
-
-4. Then commit everything except .claude/plans/ and agent/tests/conftest.py as:
-   "#328 review: fix tool names, allowed_tools, kill switch, export scope, pre-checks and tests"
-   Show git status and git log --oneline -3. Do not push.
+STEP 3 - Summary (after the last chunk)
+- A short table: chunk, number of Blockers / High / Nit / Question.
+- The Blockers and Highs first, then Nits and Questions.
+- A list of all comments in the order I should post them on GitHub.
+- Remove the worktree: `git worktree remove ../review-pr-<NUMBER>`.
