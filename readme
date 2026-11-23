@@ -1,25 +1,26 @@
-Review teammate PR #<NUMBER> in saama-engineering/Trial-Assistant. Review only. Do NOT edit any code, do NOT commit, do NOT push, do NOT post anything to GitHub. My manager wants comments, not fixes.
+Create a professional presentation that explains the attached research paper, "Self-Improvement Memory Enables Continual Recursive Self-Improvement".
 
-STEP 0 - Isolate (no edits to my branch)
-- Read the PR metadata: `gh pr view <NUMBER> --json title,body,headRefName,baseRefName,files,additions,deletions`. If it references an issue, read that too (`gh issue view <ISSUE>`) and treat its requirements as the spec.
-- Create a separate worktree for the PR: `git fetch origin pull/<NUMBER>/head:review-pr-<NUMBER>` then `git worktree add ../review-pr-<NUMBER> review-pr-<NUMBER>`. Work only inside that worktree. My own branch must stay untouched.
+Scope:
+- Explain only the paper. No general AI background slides, no company-specific or integration slides.
 
-STEP 1 - Split (no review yet)
-- Group the changed files into chunks of about 300-400 changed lines each, by module or feature (e.g. tools, hooks, config, tests, frontend). Keep related files in the same chunk.
-- Save the chunk list to .claude/plans/review-<NUMBER>-chunks.md with file names and line counts.
-- Show me the chunks and WAIT for me to say "review chunk 1".
+Cover, in this order:
+1. Title slide (paper title, authors, affiliations, arXiv ID)
+2. The problem: why an evolved harness can fail after a model or benchmark change (include the 68.41 vs 73.89 and 72.92 vs 75.72 examples)
+3. Key definitions: harness, harness optimization (RSI), Continual RSI (CRSI), Self-Improvement Memory (SIM)
+4. Method: the optimization loop (evaluator, proposer, selector), with a simple architecture diagram
+5. SIM: what it stores (each JSON field), how it is updated each round, how the proposer and selector use it
+6. End-to-end flow diagram: source RSI → carry harness + SIM → target RSI → held-out evaluation
+7. Experimental setup: four domains, benchmarks, models, budgets, evolve/held-out split
+8. The four comparison conditions
+9. Results: cross-dataset table, cross-model table, the 10-run paired study (9/10, +2.36, p = 0.003), and other findings (model generations, shared harness, source retention)
+10. Case study: the P5 → P8 completion-gate example, and the four roles of SIM
+11. What transfers vs what needs revision
+12. Limitations and ethics
+13. Summary slide with key takeaways
 
-STEP 2 - Review one chunk per request
-When I say "review chunk K":
-- Read only that chunk's diff (`gh pr diff <NUMBER> -- <files>`). Open surrounding code in the worktree only when a finding needs it.
-- Look for: bugs, missing or wrong permission/validation checks, behaviour that doesn't match the issue, missing or weak tests, error handling, duplicated logic, and unclear naming that breaks neighbouring conventions. Skip pure style nits.
-- For each finding give: file:line, severity (Blocker / High / Nit / Question), a one-line description of the problem, and a ready-to-paste GitHub comment written politely, suggesting a fix without making it.
-- Only report what you verified in the code. If you're not sure, mark it "Question" instead of stating it as a bug.
-- Append findings to .claude/plans/review-<NUMBER>-findings.md.
-- Then STOP and wait for the next chunk.
-
-STEP 3 - Summary (after the last chunk)
-- A short table: chunk, number of Blockers / High / Nit / Question.
-- The Blockers and Highs first, then Nits and Questions.
-- A list of all comments in the order I should post them on GitHub.
-- Remove the worktree: `git worktree remove ../review-pr-<NUMBER>`.
+Rules:
+- Use only numbers and facts from the paper. Do not invent anything.
+- Plain white background, minimal design, one idea per slide, short bullet points, no clutter.
+- Use tables for results and simple box-and-arrow diagrams for the architecture and flow.
+- Add speaker notes to every slide explaining the slide in simple language for someone new to the topic.
+- About 15–18 slides.
